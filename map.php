@@ -7,8 +7,10 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
+
 // Fetch all characters and their assigned cells
-$stmt = $conn->prepare("SELECT character_name, block, cell FROM characters ORDER BY block, cell");
+$stmt = $conn->prepare("SELECT user_id, character_name, block, cell FROM characters ORDER BY block, cell");
 $stmt->execute();
 $characters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -22,7 +24,7 @@ foreach (range('A', 'O') as $block) {
 
 // Populate the map with characters
 foreach ($characters as $character) {
-    $map[$character['block']][$character['cell']] = $character['character_name'];
+    $map[$character['block']][$character['cell']] = $character;
 }
 ?>
 <!DOCTYPE html>
@@ -49,6 +51,7 @@ foreach ($characters as $character) {
         }
         .occupied {
             background-color: #d4edda;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -63,11 +66,11 @@ foreach ($characters as $character) {
                     Block <?php echo $block; ?>
                 </button>
                 <div class="collapse" id="block-<?php echo $block; ?>">
-                    <?php foreach ($cells as $cell => $character_name): ?>
-                        <div class="cell <?php echo $character_name ? 'occupied' : ''; ?>">
+                    <?php foreach ($cells as $cell => $character): ?>
+                        <div class="cell <?php echo $character ? 'occupied' : ''; ?>" <?php echo $character ? 'data-user-id="'.$character['user_id'].'" data-character-name="'.htmlspecialchars($character['character_name']).'"' : ''; ?>>
                             <strong>Cell <?php echo $cell; ?></strong>
-                            <?php if ($character_name): ?>
-                                <div><?php echo htmlspecialchars($character_name); ?></div>
+                            <?php if ($character): ?>
+                                <div><?php echo htmlspecialchars($character['character_name']); ?></div>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -85,5 +88,14 @@ foreach ($characters as $character) {
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $(document).on('click', '.cell.occupied', function() {
+        const userId = $(this).data('user-id');
+        const characterName = $(this).data('character-name');
+        if (userId !== <?php echo $user_id; ?>) { // Prevent self-messaging
+            window.location.href = `main.php?recipient_id=${userId}&recipient_name=${encodeURIComponent(characterName)}`;
+        }
+    });
+</script>
 </body>
 </html>
