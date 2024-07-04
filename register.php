@@ -2,7 +2,6 @@
 include 'db.php';
 include 'csrf.php';
 
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -18,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
         $password = $_POST['password'];
 
-        // More strict email validation
-        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (empty($username) || empty($email) || empty($password)) {
+            $error = "All fields are required.";
+        } elseif (!$email) {
             $error = "Invalid email address.";
         } elseif (strlen($username) < 5) {
             $error = "Username must be at least 5 characters.";
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 header('Location: index.php?registered=true');
                 exit();
-            } catch(PDOException $e) {
+            } catch (PDOException $e) {
                 if ($e->getCode() == 23000) { // Integrity constraint violation
                     $error = "Username or email already taken.";
                 } else {
@@ -73,6 +73,9 @@ if (session_status() == PHP_SESSION_NONE) {
 <body>
 <div class="container">
     <h2>Register</h2>
+    <?php if ($error): ?>
+        <div class="alert alert-danger" role="alert"><?php echo $error; ?></div>
+    <?php endif; ?>
     <form id="registerForm" method="post" action="register.php">
         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
         <div class="form-group">

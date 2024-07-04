@@ -1,10 +1,8 @@
 <?php
-// Include necessary files
 include 'session.php';
 include 'db.php';
 include 'csrf.php';
 
-// Start session if not already started
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -32,21 +30,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $password = $_POST['password'];
 
-        $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
-        $stmt->bindParam(':username', $username);
-        $stmt->execute();
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($user && password_verify($password, $user['password'])) {
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['last_activity'] = time(); // Set last activity time
-            error_log("Successful login attempt for user: $username");
-            header('Location: main.php');
-            exit();
+        if (empty($username) || empty($password)) {
+            $error = "Username and password are required.";
         } else {
-            $error = "Invalid username or password.";
-            error_log("Failed login attempt for user: $username");
+            try {
+                $stmt = $conn->prepare("SELECT * FROM users WHERE username = :username");
+                $stmt->bindParam(':username', $username);
+                $stmt->execute();
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && password_verify($password, $user['password'])) {
+                    session_regenerate_id(true);
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['last_activity'] = time(); // Set last activity time
+                    error_log("Successful login attempt for user: $username");
+                    header('Location: main.php');
+                    exit();
+                } else {
+                    $error = "Invalid username or password.";
+                    error_log("Failed login attempt for user: $username");
+                }
+            } catch (PDOException $e) {
+                $error = "An error occurred: " . $e->getMessage();
+                error_log("Failed login attempt for user: $username. Error: " . $e->getMessage());
+            }
         }
     }
 }
@@ -60,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="scripts.js"></script>
     <script>
-        // Remove timeout=true and registered=true from URL on page load
         document.addEventListener("DOMContentLoaded", function() {
             const params = new URLSearchParams(window.location.search);
             if (params.has('timeout') && params.get('timeout') === 'true') {
@@ -82,6 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endif; ?>
     <?php if (isset($_GET['registered']) && $_GET['registered'] == 'true'): ?>
         <div class="alert alert-success" role="alert">Registration successful. Please log in.</div>
+    <?php endif; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger" role="alert"><?php echo $error; ?></div>
     <?php endif; ?>
     <form id="loginForm" method="post" action="index.php">
         <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
