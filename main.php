@@ -44,6 +44,7 @@ if (!$character) {
         <p><strong>Negotiation:</strong> <?php echo htmlspecialchars($character['negotiation']); ?></p>
     <?php endif; ?>
     <a href="logout.php" class="btn btn-danger">Logout</a>
+    <a href="map.php" class="btn btn-primary">View Map</a>
 </div>
 </body>
 </html>

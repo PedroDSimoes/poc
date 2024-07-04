@@ -16,9 +16,33 @@ if (isset($_SESSION['character_creation_required']) && !$_SESSION['character_cre
 
 $error = '';
 
+function getRandomCell($conn) {
+    $blocks = range('A', 'O');
+    $cells = range(1, 20);
+
+    shuffle($blocks);
+    shuffle($cells);
+
+    foreach ($blocks as $block) {
+        foreach ($cells as $cell) {
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM characters WHERE block = :block AND cell = :cell");
+            $stmt->bindParam(':block', $block);
+            $stmt->bindParam(':cell', $cell);
+            $stmt->execute();
+            $count = $stmt->fetchColumn();
+
+            if ($count == 0) {
+                return [$block, $cell];
+            }
+        }
+    }
+    throw new Exception("No available cells");
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'])) {
         $error = "Invalid CSRF token.";
+        error_log("Invalid CSRF token during registration attempt.");
     } else {
         $user_id = $_SESSION['user_id'];
         $character_name = filter_input(INPUT_POST, 'character_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -34,13 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = "You must allocate exactly 15 points.";
         } else {
             try {
-                $stmt = $conn->prepare("INSERT INTO characters (user_id, character_name, strength, dexterity, constitution, negotiation, level) VALUES (:user_id, :character_name, :strength, :dexterity, :constitution, :negotiation, 1)");
+                list($block, $cell) = getRandomCell($conn);
+
+                $stmt = $conn->prepare("INSERT INTO characters (user_id, character_name, strength, dexterity, constitution, negotiation, level, block, cell) VALUES (:user_id, :character_name, :strength, :dexterity, :constitution, :negotiation, 1, :block, :cell)");
                 $stmt->bindParam(':user_id', $user_id);
                 $stmt->bindParam(':character_name', $character_name);
                 $stmt->bindParam(':strength', $strength);
                 $stmt->bindParam(':dexterity', $dexterity);
                 $stmt->bindParam(':constitution', $constitution);
                 $stmt->bindParam(':negotiation', $negotiation);
+                $stmt->bindParam(':block', $block);
+                $stmt->bindParam(':cell', $cell);
                 $stmt->execute();
 
                 // Set the session flag indicating that character creation is complete
@@ -48,7 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 header('Location: main.php');
                 exit();
-            } catch(PDOException $e) {
+            } catch (Exception $e) {
+                $error = "An error occurred: " . $e->getMessage();
+            } catch (PDOException $e) {
                 $error = "An error occurred: " . $e->getMessage();
             }
         }

@@ -6,7 +6,6 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Adding indexes to frequently queried fields
 CREATE INDEX idx_username ON users (username);
 CREATE INDEX idx_email ON users (email);
 
@@ -19,6 +18,9 @@ CREATE TABLE characters (
     constitution INT NOT NULL DEFAULT 0,
     negotiation INT NOT NULL DEFAULT 0,
     level INT NOT NULL DEFAULT 1,
+    block CHAR(1) NOT NULL,
+    cell INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (block, cell)
 );
