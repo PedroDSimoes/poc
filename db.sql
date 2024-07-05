@@ -34,3 +34,13 @@ CREATE TABLE messages (
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY (receiver_id) REFERENCES users(id)
 );
+
+ALTER TABLE characters
+ADD COLUMN xp INT NOT NULL DEFAULT 0,
+ADD COLUMN money INT NOT NULL DEFAULT 0;
+
+ALTER TABLE users
+ADD COLUMN work_lock_time INT DEFAULT 0;
+
+ALTER TABLE users
+ADD COLUMN current_workplace VARCHAR(50) DEFAULT NULL;

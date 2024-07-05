@@ -23,6 +23,16 @@ if (!$character) {
     $_SESSION['character_creation_required'] = false;
 }
 
+// Fetch the work lock time and current workplace from the database
+$stmt = $conn->prepare("SELECT work_lock_time, current_workplace FROM users WHERE id = :user_id");
+$stmt->bindParam(':user_id', $user_id);
+$stmt->execute();
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$work_lock_time = isset($user['work_lock_time']) ? $user['work_lock_time'] : 0;
+$current_workplace = isset($user['current_workplace']) ? $user['current_workplace'] : '';
+$current_time = time();
+$lock_remaining_time = max(0, $work_lock_time - $current_time);
+
 // Fetch the most recent conversation partners and their character names
 $stmt = $conn->prepare("
     SELECT DISTINCT 
@@ -93,15 +103,19 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
     <?php if ($character): ?>
         <h2>Character Details</h2>
         <p><strong>Name:</strong> <?php echo htmlspecialchars($character['character_name']); ?></p>
-        <p><strong>Level:</strong> <?php echo htmlspecialchars($character['level']); ?></p>
+        <p><strong>Level:</strong> <span id="level"><?php echo htmlspecialchars($character['level']); ?></span></p>
+        <p><strong>XP:</strong> <span id="xp"><?php echo htmlspecialchars($character['xp']); ?></span></p>
         <p><strong>Strength:</strong> <?php echo htmlspecialchars($character['strength']); ?></p>
         <p><strong>Dexterity:</strong> <?php echo htmlspecialchars($character['dexterity']); ?></p>
         <p><strong>Constitution:</strong> <?php echo htmlspecialchars($character['constitution']); ?></p>
         <p><strong>Negotiation:</strong> <?php echo htmlspecialchars($character['negotiation']); ?></p>
+        <p><strong>Block:</strong> <?php echo htmlspecialchars($character['block']); ?></p>
+        <p><strong>Cell:</strong> <?php echo htmlspecialchars($character['cell']); ?></p>
     <?php endif; ?>
     <a href="logout.php" class="btn btn-danger">Logout</a>
     <a href="map.php" class="btn btn-primary">View Map</a>
     <button id="chatButton" class="btn btn-info">Chat</button>
+    <p id="statusMessage" class="mt-3"></p>
 </div>
 
 <!-- Chat Side Panel -->
@@ -136,6 +150,8 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
 <script>
     let activeRecipientId = <?php echo $recipient_id ? json_encode($recipient_id) : 'null'; ?>;
     let activeRecipientName = <?php echo $recipient_name ? json_encode($recipient_name) : 'null'; ?>;
+    let lockRemainingTime = <?php echo $lock_remaining_time; ?>;
+    let currentWorkplace = <?php echo json_encode($current_workplace); ?>;
 
     function openChatPanel() {
         document.getElementById("chatPanel").style.width = "400px";
@@ -207,6 +223,9 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
             openChatPanel();
             addConversationTab(activeRecipientId, activeRecipientName);
         }
+        
+        // Update status message
+        updateStatusMessage();
     });
 
     // Add new conversation tab
@@ -252,6 +271,16 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
             }
         });
     });
+
+    function updateStatusMessage() {
+        if (lockRemainingTime > 0) {
+            $('#statusMessage').text(`You are working in the ${currentWorkplace} for another ${lockRemainingTime} seconds.`);
+            lockRemainingTime--;
+            setTimeout(updateStatusMessage, 1000);
+        } else {
+            $('#statusMessage').text('');
+        }
+    }
 
     // Handle errors in adding new tabs and content
     window.onerror = function(message, source, lineno, colno, error) {
