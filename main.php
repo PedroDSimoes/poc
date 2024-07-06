@@ -115,6 +115,8 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
     <a href="logout.php" class="btn btn-danger">Logout</a>
     <a href="map.php" class="btn btn-primary">View Map</a>
     <button id="chatButton" class="btn btn-info">Chat</button>
+    <button id="inventoryButton" class="btn btn-warning">Inventory</button>
+    <button id="equipButton" class="btn btn-secondary">Equip</button>
     <p id="statusMessage" class="mt-3"></p>
 </div>
 
@@ -141,6 +143,46 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
                     <button type="button" class="btn btn-primary sendMessageButton" data-recipient-id="<?php echo $conversation['partner_id']; ?>">Send</button>
                 </div>
             <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1" role="dialog" aria-labelledby="inventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryModalLabel">Inventory</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h6>Weapons</h6>
+                <div id="inventoryWeapons" class="d-flex flex-wrap"></div>
+                <h6 class="mt-3">Armor</h6>
+                <div id="inventoryArmor" class="d-flex flex-wrap"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Equip Modal -->
+<div class="modal fade" id="equipModal" tabindex="-1" role="dialog" aria-labelledby="equipModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="equipModalLabel">Equip Items</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="equippedItems" class="d-flex flex-wrap">
+                    <div class="p-2 border m-1" id="equippedWeapon">Weapon: None</div>
+                    <div class="p-2 border m-1" id="equippedArmor">Armor: None</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -226,6 +268,9 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
         
         // Update status message
         updateStatusMessage();
+
+        // Fetch inventory and equipped items
+        fetchInventoryAndEquip();
     });
 
     // Add new conversation tab
@@ -281,6 +326,103 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
             $('#statusMessage').text('');
         }
     }
+
+    // Fetch inventory and equipped items
+    function fetchInventoryAndEquip() {
+        $.ajax({
+            url: 'fetch_inventory.php',
+            method: 'POST',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Display inventory items
+                    $('#inventoryWeapons').empty();
+                    $('#inventoryArmor').empty();
+                    response.inventory_items.forEach(function(item) {
+                        if (item.type === 'weapon') {
+                            $('#inventoryWeapons').append(
+                                `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="weapon">Equip</button></div>`
+                            );
+                        } else if (item.type === 'armor') {
+                            $('#inventoryArmor').append(
+                                `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="armor">Equip</button></div>`
+                            );
+                        }
+                    });
+
+                    // Display equipped items
+                    $('#equippedWeapon').html('Weapon: None');
+                    $('#equippedArmor').html('Armor: None');
+                    response.equipped_items.forEach(function(item) {
+                        if (item.slot === 'weapon') {
+                            $('#equippedWeapon').html(`Weapon: ${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-danger unequipButton" data-item-id="${item.id}" data-slot="weapon">Unequip</button>`);
+                        } else if (item.slot === 'armor') {
+                            $('#equippedArmor').html(`Armor: ${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-danger unequipButton" data-item-id="${item.id}" data-slot="armor">Unequip</button>`);
+                        }
+                    });
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching inventory and equipped items:', status, error);
+            }
+        });
+    }
+
+    // Open inventory modal
+    $('#inventoryButton').on('click', function() {
+        $('#inventoryModal').modal('show');
+    });
+
+    // Open equip modal
+    $('#equipButton').on('click', function() {
+        $('#equipModal').modal('show');
+    });
+
+    // Equip item
+    $(document).on('click', '.equipButton', function() {
+        const itemId = $(this).data('item-id');
+        const itemType = $(this).data('item-type');
+        $.ajax({
+            url: 'equip_item.php',
+            method: 'POST',
+            data: { item_id: itemId, slot: itemType },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    fetchInventoryAndEquip();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error equipping item:', status, error);
+            }
+        });
+    });
+
+    // Unequip item
+    $(document).on('click', '.unequipButton', function() {
+        const itemId = $(this).data('item-id');
+        const slot = $(this).data('slot');
+        $.ajax({
+            url: 'unequip_item.php',
+            method: 'POST',
+            data: { item_id: itemId, slot: slot },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    fetchInventoryAndEquip();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error unequipping item:', status, error);
+            }
+        });
+    });
 
     // Handle errors in adding new tabs and content
     window.onerror = function(message, source, lineno, colno, error) {

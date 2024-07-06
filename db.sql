@@ -44,3 +44,36 @@ ADD COLUMN work_lock_time INT DEFAULT 0;
 
 ALTER TABLE users
 ADD COLUMN current_workplace VARCHAR(50) DEFAULT NULL;
+
+CREATE TABLE items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    type ENUM('weapon', 'armor', 'carry') NOT NULL
+);
+
+CREATE TABLE inventory (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    item_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (item_id) REFERENCES items(id)
+);
+
+CREATE TABLE equipped_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    item_id INT NOT NULL,
+    slot ENUM('weapon', 'armor') NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (item_id) REFERENCES items(id)
+);
+
+INSERT INTO items (name, description, type) VALUES ('Knife', 'A sharp knife.', 'weapon');
+INSERT INTO items (name, description, type) VALUES ('Bulletproof Vest', 'Provides protection.', 'armor');
+
+ALTER TABLE items ADD COLUMN price INT NOT NULL DEFAULT 0;
+
+-- Update existing items with prices
+UPDATE items SET price = 10 WHERE id = 1;  -- Knife price
+UPDATE items SET price = 20 WHERE id = 2;  -- Bulletproof Vest price

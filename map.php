@@ -82,8 +82,7 @@ foreach ($characters as $character) {
         <a href="kitchen.php" class="btn btn-info">Kitchen</a>
         <a href="library.php" class="btn btn-info">Library</a>
         <a href="workshop.php" class="btn btn-info">Workshop</a>
-        <button class="btn btn-info">Day Hall</button>
-        <button class="btn btn-info">Outside Yard</button>
+        <a href="outside_yard.php" class="btn btn-info">Outside Yard</a>
     </div>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
