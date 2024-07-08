@@ -23,6 +23,17 @@ if (!$character) {
     $_SESSION['character_creation_required'] = false;
     $_SESSION['character_id'] = $character['id'];
 }
+
+// Check if the quest has been accepted or is in progress
+$stmt = $conn->prepare("SELECT * FROM user_quests WHERE user_id = :user_id AND quest_id = 1");
+$stmt->bindParam(':user_id', $user_id);
+$stmt->execute();
+$quest_status = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Fetch the quest details
+$stmt = $conn->prepare("SELECT * FROM quests WHERE id = 1");  // Assuming quest id 1 for "Demo Quest"
+$stmt->execute();
+$quest = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +59,11 @@ if (!$character) {
     </div>
     <button id="inventoryButton" class="btn btn-warning mt-3">View Inventory</button>
     <a href="map.php" class="btn btn-secondary mt-3">Back to Map</a>
+    <?php if (!$quest_status): ?>
+        <button id="questButton" class="btn btn-success mt-3">View Quest</button>
+    <?php elseif ($quest_status['status'] === 'in_progress'): ?>
+        <button id="returnQuestItemButton" class="btn btn-success mt-3">Return Cooking Pot</button>
+    <?php endif; ?>
     <p id="statusMessage" class="mt-3"></p>
 </div>
 
@@ -70,6 +86,44 @@ if (!$character) {
         </div>
     </div>
 </div>
+
+<?php if (!$quest_status): ?>
+<!-- Quest Modal -->
+<div class="modal fade" id="questModal" tabindex="-1" role="dialog" aria-labelledby="questModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="questModalLabel"><?php echo htmlspecialchars($quest['name']); ?></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p><?php echo nl2br(htmlspecialchars($quest['description'])); ?></p>
+                <button id="acceptQuestButton" class="btn btn-success">Accept Quest</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php elseif ($quest_status['status'] === 'in_progress'): ?>
+<!-- Return Quest Item Modal -->
+<div class="modal fade" id="returnQuestItemModal" tabindex="-1" role="dialog" aria-labelledby="returnQuestItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returnQuestItemModalLabel">Return Cooking Pot</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>You returned the Cooking Pot!</p>
+                <button id="confirmReturnQuestItemButton" class="btn btn-success">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -100,6 +154,58 @@ if (!$character) {
         $('#inventoryButton').on('click', function() {
             fetchInventory();
             $('#inventoryModal').modal('show');
+        });
+
+        $('#questButton').on('click', function() {
+            $('#questModal').modal('show');
+        });
+
+        $('#acceptQuestButton').on('click', function() {
+            $.ajax({
+                url: 'accept_quest.php',
+                method: 'POST',
+                data: { quest_id: 1 },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('You accepted the quest!');
+                        $('#questModal').modal('hide');
+                        $('#questButton').hide();
+                        location.reload(); // Reload page to update button state
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error accepting quest:', status, error);
+                }
+            });
+        });
+
+        $('#returnQuestItemButton').on('click', function() {
+            $('#returnQuestItemModal').modal('show');
+        });
+
+        $('#confirmReturnQuestItemButton').on('click', function() {
+            $.ajax({
+                url: 'return_quest_item.php',
+                method: 'POST',
+                data: { quest_id: 1 },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        alert('You returned the Cooking Pot!');
+                        $('#returnQuestItemModal').modal('hide');
+                        $('#returnQuestItemButton').hide();
+                        location.reload(); // Reload page to update button state
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error returning quest item:', status, error);
+                }
+            });
         });
 
         function fetchInventory() {

@@ -77,3 +77,24 @@ ALTER TABLE items ADD COLUMN price INT NOT NULL DEFAULT 0;
 -- Update existing items with prices
 UPDATE items SET price = 10 WHERE id = 1;  -- Knife price
 UPDATE items SET price = 20 WHERE id = 2;  -- Bulletproof Vest price
+
+CREATE TABLE quests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    reward_xp INT NOT NULL
+);
+
+CREATE TABLE user_quests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    quest_id INT NOT NULL,
+    status ENUM('accepted', 'completed') NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (quest_id) REFERENCES quests(id)
+);
+
+-- Insert demo quest
+INSERT INTO quests (name, description, reward_xp) VALUES ('Demo Quest', 'this quest is a test, you can accept, go to the kitchen and pick up a cooking pot, then come back and give me the pot.', 100);
+INSERT INTO items (name, description, type, price) VALUES ('Cooking Pot', 'A pot used for cooking.', 'carry', 0);
+ALTER TABLE user_quests MODIFY COLUMN status ENUM('accepted', 'picked_up_pot', 'completed') NOT NULL;
