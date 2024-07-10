@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Fetch inventory items
-$stmt = $conn->prepare("SELECT i.id, i.name, i.description, i.type FROM inventory inv JOIN items i ON inv.item_id = i.id WHERE inv.user_id = :user_id");
+$stmt = $conn->prepare("SELECT inv.id as inventory_id, i.id, i.name, i.description, i.type FROM inventory inv JOIN items i ON inv.item_id = i.id WHERE inv.user_id = :user_id");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $inventory_items = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -89,12 +89,27 @@ CREATE TABLE user_quests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     quest_id INT NOT NULL,
-    status ENUM('accepted', 'completed') NOT NULL,
+    status ENUM('accepted', 'in_progress', 'completed') NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (quest_id) REFERENCES quests(id)
 );
 
+
 -- Insert demo quest
 INSERT INTO quests (name, description, reward_xp) VALUES ('Demo Quest', 'this quest is a test, you can accept, go to the kitchen and pick up a cooking pot, then come back and give me the pot.', 100);
 INSERT INTO items (name, description, type, price) VALUES ('Cooking Pot', 'A pot used for cooking.', 'carry', 0);
-ALTER TABLE user_quests MODIFY COLUMN status ENUM('accepted', 'picked_up_pot', 'completed') NOT NULL;
+ALTER TABLE characters ADD COLUMN unallocated_points INT NOT NULL DEFAULT 0;
+
+ALTER TABLE items ADD COLUMN damage INT NOT NULL DEFAULT 0;
+ALTER TABLE items ADD COLUMN armor INT NOT NULL DEFAULT 0;
+
+-- Update existing items with stats
+UPDATE items SET damage = 2 WHERE id = 1;  -- Knife gives 2 damage
+UPDATE items SET armor = 2 WHERE id = 2;   -- Bulletproof Vest gives 2 armor
+
+ALTER TABLE characters
+ADD COLUMN damage INT NOT NULL DEFAULT 0,
+ADD COLUMN armor INT NOT NULL DEFAULT 0;
+
+ALTER TABLE characters ADD COLUMN hp INT NOT NULL DEFAULT 50;
+ALTER TABLE characters ADD COLUMN last_attack_time TIMESTAMP NULL DEFAULT NULL;

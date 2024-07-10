@@ -60,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             try {
                 list($block, $cell) = getRandomCell($conn);
 
-                $stmt = $conn->prepare("INSERT INTO characters (user_id, character_name, strength, dexterity, constitution, negotiation, level, block, cell) VALUES (:user_id, :character_name, :strength, :dexterity, :constitution, :negotiation, 1, :block, :cell)");
+                $hp = 50 + ($constitution * 5);
+
+                $stmt = $conn->prepare("INSERT INTO characters (user_id, character_name, strength, dexterity, constitution, negotiation, level, block, cell, hp) VALUES (:user_id, :character_name, :strength, :dexterity, :constitution, :negotiation, 1, :block, :cell, :hp)");
                 $stmt->bindParam(':user_id', $user_id);
                 $stmt->bindParam(':character_name', $character_name);
                 $stmt->bindParam(':strength', $strength);
@@ -69,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':negotiation', $negotiation);
                 $stmt->bindParam(':block', $block);
                 $stmt->bindParam(':cell', $cell);
+                $stmt->bindParam(':hp', $hp);
                 $stmt->execute();
 
                 // Set the session flag indicating that character creation is complete

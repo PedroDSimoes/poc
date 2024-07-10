@@ -96,6 +96,39 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
             overflow-y: auto;
         }
     </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const statInputs = document.querySelectorAll('.stat-input');
+            const pointsLeftElement = document.getElementById('points-left');
+            let pointsLeft = <?php echo $character['unallocated_points']; ?>;
+
+            function updatePointsLeft() {
+                pointsLeft = <?php echo $character['unallocated_points']; ?>;
+                statInputs.forEach(input => {
+                    pointsLeft -= parseInt(input.value) - parseInt(input.dataset.initial);
+                });
+                pointsLeftElement.textContent = pointsLeft;
+            }
+
+            statInputs.forEach(input => {
+                input.addEventListener('input', updatePointsLeft);
+                input.previousElementSibling.addEventListener('click', function() {
+                    if (parseInt(input.value) > parseInt(input.dataset.initial)) {
+                        input.value = parseInt(input.value) - 1;
+                        updatePointsLeft();
+                    }
+                });
+                input.nextElementSibling.addEventListener('click', function() {
+                    if (pointsLeft > 0) {
+                        input.value = parseInt(input.value) + 1;
+                        updatePointsLeft();
+                    }
+                });
+            });
+
+            updatePointsLeft(); // Initial call to set points left
+        });
+    </script>
 </head>
 <body>
 <div class="container">
@@ -117,6 +150,7 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
     <button id="chatButton" class="btn btn-info">Chat</button>
     <button id="inventoryButton" class="btn btn-warning">Inventory</button>
     <button id="equipButton" class="btn btn-secondary">Equip</button>
+    <button id="characterStatsButton" class="btn btn-info">Character Stats</button>
     <p id="statusMessage" class="mt-3"></p>
 </div>
 
@@ -187,6 +221,75 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
     </div>
 </div>
 
+<!-- Character Stats Modal -->
+<div class="modal fade" id="characterStatsModal" tabindex="-1" role="dialog" aria-labelledby="characterStatsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="characterStatsModalLabel">Character Stats</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <?php if ($character): ?>
+                    <h2>Character Details</h2>
+                    <p><strong>Name:</strong> <?php echo htmlspecialchars($character['character_name']); ?></p>
+                    <p><strong>Level:</strong> <span id="level"><?php echo htmlspecialchars($character['level']); ?></span></p>
+                    <p><strong>XP:</strong> <span id="xp"><?php echo htmlspecialchars($character['xp']); ?></span></p>
+                    <p><strong>Money:</strong> <span id="money"><?php echo htmlspecialchars($character['money']); ?></span></p>
+                    <p><strong>Strength:</strong> <?php echo htmlspecialchars($character['strength']); ?></p>
+                    <p><strong>Dexterity:</strong> <?php echo htmlspecialchars($character['dexterity']); ?></p>
+                    <p><strong>Constitution:</strong> <?php echo htmlspecialchars($character['constitution']); ?></p>
+                    <p><strong>Negotiation:</strong> <?php echo htmlspecialchars($character['negotiation']); ?></p>
+
+                    <?php if ($character['unallocated_points'] > 0): ?>
+                        <h3>Allocate Points</h3>
+                        <div class="form-group">
+                            <label>Points Left: <span id="points-left"><?php echo $character['unallocated_points']; ?></span></label>
+                        </div>
+                        <form id="allocatePointsForm">
+                            <div class="form-group">
+                                <label>Strength:</label>
+                                <div class="stat-buttons">
+                                    <button type="button">-</button>
+                                    <input type="number" class="form-control stat-input" name="strength" value="0" min="0" data-initial="0">
+                                    <button type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Dexterity:</label>
+                                <div class="stat-buttons">
+                                    <button type="button">-</button>
+                                    <input type="number" class="form-control stat-input" name="dexterity" value="0" min="0" data-initial="0">
+                                    <button type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Constitution:</label>
+                                <div class="stat-buttons">
+                                    <button type="button">-</button>
+                                    <input type="number" class="form-control stat-input" name="constitution" value="0" min="0" data-initial="0">
+                                    <button type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Negotiation:</label>
+                                <div class="stat-buttons">
+                                    <button type="button">-</button>
+                                    <input type="number" class="form-control stat-input" name="negotiation" value="0" min="0" data-initial="0">
+                                    <button type="button">+</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="allocatePointsButton">Allocate Points</button>
+                        </form>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
@@ -207,6 +310,10 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
     // Open chat panel and fetch messages when chat button is pressed
     $('#chatButton').on('click', function() {
         openChatPanel();
+    });
+
+    $('#characterStatsButton').on('click', function() {
+        $('#characterStatsModal').modal('show');
     });
 
     // Fetch messages for a specific recipient
@@ -339,16 +446,18 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
                     $('#inventoryWeapons').empty();
                     $('#inventoryArmor').empty();
                     response.inventory_items.forEach(function(item) {
-                        if (item.type === 'weapon') {
-                            $('#inventoryWeapons').append(
-                                `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="weapon">Equip</button></div>`
-                            );
-                        } else if (item.type === 'armor') {
-                            $('#inventoryArmor').append(
-                                `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br><button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="armor">Equip</button></div>`
-                            );
-                        }
-                    });
+    if (item.type === 'weapon') {
+        $('#inventoryWeapons').append(
+            `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br>
+            <button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="weapon" data-inventory-id="${item.inventory_id}">Equip</button></div>`
+        );
+    } else if (item.type === 'armor') {
+        $('#inventoryArmor').append(
+            `<div class="p-2 border m-1">${item.name}<br><small>${item.description}</small><br>
+            <button class="btn btn-sm btn-primary equipButton" data-item-id="${item.id}" data-item-type="armor" data-inventory-id="${item.inventory_id}">Equip</button></div>`
+        );
+    }
+});
 
                     // Display equipped items
                     $('#equippedWeapon').html('Weapon: None');
@@ -382,25 +491,26 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
 
     // Equip item
     $(document).on('click', '.equipButton', function() {
-        const itemId = $(this).data('item-id');
-        const itemType = $(this).data('item-type');
-        $.ajax({
-            url: 'equip_item.php',
-            method: 'POST',
-            data: { item_id: itemId, slot: itemType },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    fetchInventoryAndEquip();
-                } else {
-                    alert('Error: ' + response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error equipping item:', status, error);
+    const itemId = $(this).data('item-id');
+    const itemType = $(this).data('item-type');
+    const inventoryId = $(this).data('inventory-id');
+    $.ajax({
+        url: 'equip_item.php',
+        method: 'POST',
+        data: { item_id: itemId, slot: itemType, inventory_id: inventoryId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                fetchInventoryAndEquip();
+            } else {
+                alert('Error: ' + response.message);
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('Error equipping item:', status, error);
+        }
     });
+});
 
     // Unequip item
     $(document).on('click', '.unequipButton', function() {
@@ -420,6 +530,36 @@ $recipient_name = isset($_GET['recipient_name']) ? $_GET['recipient_name'] : nul
             },
             error: function(xhr, status, error) {
                 console.error('Error unequipping item:', status, error);
+            }
+        });
+    });
+
+    // Allocate points
+    $('#allocatePointsButton').on('click', function() {
+        const strength = parseInt($('input[name="strength"]').val());
+        const dexterity = parseInt($('input[name="dexterity"]').val());
+        const constitution = parseInt($('input[name="constitution"]').val());
+        const negotiation = parseInt($('input[name="negotiation"]').val());
+
+        $.ajax({
+            url: 'allocate_points.php',
+            method: 'POST',
+            data: {
+                strength: strength,
+                dexterity: dexterity,
+                constitution: constitution,
+                negotiation: negotiation
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error allocating points:', status, error);
             }
         });
     });

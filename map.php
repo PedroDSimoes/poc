@@ -71,6 +71,10 @@ foreach ($characters as $character) {
                             <strong>Cell <?php echo $cell; ?></strong>
                             <?php if ($character): ?>
                                 <div><?php echo htmlspecialchars($character['character_name']); ?></div>
+                                <button class="btn btn-sm btn-info messageButton" data-user-id="<?php echo $character['user_id']; ?>" data-character-name="<?php echo htmlspecialchars($character['character_name']); ?>">Message</button>
+                                <?php if ($character['user_id'] != $user_id): ?>
+                                    <button class="btn btn-sm btn-danger attackButton" data-user-id="<?php echo $character['user_id']; ?>" data-character-name="<?php echo htmlspecialchars($character['character_name']); ?>">Attack</button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -85,15 +89,50 @@ foreach ($characters as $character) {
         <a href="outside_yard.php" class="btn btn-info">Outside Yard</a>
     </div>
 </div>
+
+<!-- Combat Log Modal -->
+<div class="modal fade" id="combatLogModal" tabindex="-1" role="dialog" aria-labelledby="combatLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="combatLogModalLabel">Combat Log</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="combatLogContent">
+                <!-- Combat log will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
-    $(document).on('click', '.cell.occupied', function() {
+    $(document).on('click', '.messageButton', function() {
         const userId = $(this).data('user-id');
         const characterName = $(this).data('character-name');
         if (userId !== <?php echo $user_id; ?>) { // Prevent self-messaging
             window.location.href = `main.php?recipient_id=${userId}&recipient_name=${encodeURIComponent(characterName)}`;
         }
+    });
+
+    $(document).on('click', '.attackButton', function() {
+        const userId = $(this).data('user-id');
+        const characterName = $(this).data('character-name');
+        $.ajax({
+            url: 'attack.php',
+            method: 'POST',
+            data: { target_id: userId },
+            success: function(response) {
+                $('#combatLogContent').html(response);
+                $('#combatLogModal').modal('show');
+            },
+            error: function(xhr, status, error) {
+                alert('An error occurred: ' + error);
+            }
+        });
     });
 </script>
 </body>

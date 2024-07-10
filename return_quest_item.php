@@ -1,6 +1,7 @@
 <?php
 include 'session.php';
 include 'db.php';
+include 'character_functions.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_POST['quest_id'])) {
     echo json_encode(['success' => false, 'message' => 'User not logged in or quest ID not provided.']);
@@ -37,11 +38,18 @@ try {
     $quest_reward = $stmt->fetch(PDO::FETCH_ASSOC);
     $reward_xp = $quest_reward['reward_xp'];
 
-    // Update character XP
-    $stmt = $conn->prepare("UPDATE characters SET xp = xp + :reward_xp WHERE user_id = :user_id");
-    $stmt->bindParam(':reward_xp', $reward_xp);
+    // Get character ID
+    $stmt = $conn->prepare("SELECT id FROM characters WHERE user_id = :user_id");
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
+    $character = $stmt->fetch(PDO::FETCH_ASSOC);
+    $character_id = $character['id'];
+
+    // Update character XP and check for level up
+    $success = gainXp($character_id, $reward_xp);
+    if (!$success) {
+        throw new Exception("Failed to update character XP and level.");
+    }
 
     $conn->commit();
 
