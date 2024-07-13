@@ -40,7 +40,8 @@ $stmt = $conn->prepare("
             WHEN sender_id = :user_id THEN receiver_id 
             ELSE sender_id 
         END as partner_id,
-        c.character_name
+        c.character_name,
+        m.created_at
     FROM messages m
     JOIN characters c ON (c.user_id = m.sender_id OR c.user_id = m.receiver_id)
     WHERE (m.sender_id = :user_id OR m.receiver_id = :user_id) AND c.user_id != :user_id
